@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chatbit"
+version = "0.1.0"
+description = "Encrypted mesh chat over radio you control"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["lora", "mesh", "encryption", "noise-protocol", "double-ratchet", "radio"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Communications :: Chat",
+    "Topic :: Security :: Cryptography",
+]
+dependencies = [
+    "cryptography>=41.0",
+]
+
+[project.optional-dependencies]
+lora = ["pyserial>=3.5"]
+dev = ["pytest>=7.4", "pytest-asyncio>=0.21"]
+
+[project.scripts]
+chatbit = "chatbit.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/sk000001/chatbit"
+Issues = "https://github.com/sk000001/chatbit/issues"
+
+[tool.setuptools.packages.find]
+include = ["chatbit*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

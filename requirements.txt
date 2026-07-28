@@ -1,0 +1,10 @@
+# Core. Provides X25519, Ed25519, ChaCha20-Poly1305, HKDF and scrypt.
+cryptography>=41.0
+
+# Only needed for the LoRa transport. Everything else -- the demo, the UDP
+# transport, the tests -- runs without it.
+# pyserial>=3.5
+
+# Development.
+# pytest>=7.4
+# pytest-asyncio>=0.21
