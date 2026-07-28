@@ -170,6 +170,20 @@ pip install pyserial
 
 Exchange static keys out of band (`chatbit id` prints yours), then `/connect <hexkey>`.
 
+## Protect your identity file
+
+Your private keys live in `~/.chatbit/identity.json`. Creating an identity prompts for a
+passphrase, which encrypts it at rest with scrypt + ChaCha20-Poly1305:
+
+```bash
+.venv/bin/chatbit --nick alice id              # prompts, then encrypts
+CHATBIT_PASSPHRASE=… .venv/bin/chatbit id      # non-interactive
+.venv/bin/chatbit --no-encrypt id              # explicitly plaintext
+```
+
+There is deliberately **no `--passphrase` flag**: anything on the command line is
+readable by other local users via `ps` and lands in your shell history.
+
 ## Verify your peers
 
 TOFU pinning is only as good as the one-time check. After a handshake:

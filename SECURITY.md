@@ -135,8 +135,18 @@ you.
 ### Compelled disclosure
 
 Rubber-hose cryptanalysis works. There is no deniability feature, no duress password, and
-no plausible-deniability layer. The identity file is encrypted at rest with scrypt, which
-resists offline guessing and nothing else.
+no plausible-deniability layer.
+
+The identity file **can** be encrypted at rest with scrypt, and the CLI offers this when
+creating one — but it is a choice, and declining it writes your private keys to disk in
+the clear. `chatbit id` on an existing file tells you which you have. Encryption at rest
+resists offline guessing of a stolen file and nothing else: it does not help against a
+running process, and it does not help against someone who can make you type the
+passphrase.
+
+The passphrase is never accepted as a command-line argument, because argv is readable by
+any local user through `ps` and is written to shell history. Use `CHATBIT_PASSPHRASE`, or
+let the tool prompt.
 
 ### Traffic confirmation by a global observer
 

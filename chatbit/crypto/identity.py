@@ -175,6 +175,19 @@ class Identity:
         os.chmod(tmp, stat.S_IRUSR | stat.S_IWUSR)
         os.replace(tmp, path)
 
+    @staticmethod
+    def is_encrypted(path: str | Path) -> bool:
+        """Whether an identity file is passphrase-protected.
+
+        Lets a caller decide to prompt *before* attempting a load, rather than
+        loading, failing, and prompting on the way back up.
+        """
+        try:
+            with open(path) as fh:
+                return json.load(fh).get("enc", "none") != "none"
+        except (OSError, json.JSONDecodeError, AttributeError):
+            return False
+
     @classmethod
     def load(cls, path: str | Path, passphrase: str | None = None) -> "Identity":
         with open(path) as fh:

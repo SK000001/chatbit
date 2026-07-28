@@ -13,6 +13,8 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import getpass
+import os
 import sys
 from pathlib import Path
 
@@ -41,9 +43,70 @@ BANNER = r"""
 # ---------------------------------------------------------------------------
 
 
+def resolve_passphrase(path: Path, args) -> str | None:
+    """Work out the passphrase for an identity file, prompting if needed.
+
+    The passphrase is deliberately **not** accepted as a command-line argument.
+    Anything on argv is visible to every other process on the machine via `ps`
+    and lands in shell history, which would make the option actively worse than
+    having none. It comes from an environment variable or an interactive
+    prompt, and nowhere else.
+    """
+    env_var = getattr(args, "passphrase_env", None) or "CHATBIT_PASSPHRASE"
+    from_env = os.environ.get(env_var)
+    if from_env:
+        return from_env
+
+    exists = path.exists()
+
+    if exists and Identity.is_encrypted(path):
+        if not sys.stdin.isatty():
+            raise SystemExit(
+                f"{path} is encrypted and there is no terminal to prompt on.\n"
+                f"Set {env_var} in the environment instead."
+            )
+        return getpass.getpass(f"passphrase for {path}: ")
+
+    if exists:
+        return None  # existing, unencrypted: nothing to ask
+
+    # Creating a new identity. This is the one moment we can offer encryption,
+    # so take it rather than silently writing a private key in the clear.
+    if getattr(args, "no_encrypt", False):
+        print(f"!! creating an UNENCRYPTED identity at {path}", file=sys.stderr)
+        return None
+
+    if not sys.stdin.isatty():
+        print(
+            f"!! creating an UNENCRYPTED identity at {path} (no terminal to "
+            f"prompt on; set {env_var} to encrypt it)",
+            file=sys.stderr,
+        )
+        return None
+
+    print(f"Creating a new identity at {path}.")
+    print("A passphrase encrypts the private keys at rest. Empty means no encryption.")
+    first = getpass.getpass("passphrase (empty to skip): ")
+    if not first:
+        print("!! identity will be stored UNENCRYPTED", file=sys.stderr)
+        return None
+    second = getpass.getpass("confirm: ")
+    if first != second:
+        raise SystemExit("passphrases did not match")
+    return first
+
+
 def load_identity(args) -> Identity:
     path = Path(args.identity).expanduser()
-    return Identity.load_or_create(path, args.nick, getattr(args, "passphrase", None))
+    passphrase = resolve_passphrase(path, args)
+    try:
+        return Identity.load_or_create(path, args.nick, passphrase)
+    except Exception as exc:
+        # A wrong passphrase surfaces as an AEAD failure, which is accurate but
+        # unhelpful as a first line of output.
+        if path.exists() and Identity.is_encrypted(path):
+            raise SystemExit(f"could not unlock {path}: wrong passphrase?") from exc
+        raise
 
 
 def build_config(args) -> NodeConfig:
@@ -440,6 +503,31 @@ def cmd_chat(args) -> int:
 # ---------------------------------------------------------------------------
 
 
+class _RejectPassphraseFlag(argparse.Action):
+    """Refuse ``--passphrase``, loudly, instead of doing something worse.
+
+    This option exists only to be rejected. Without it, argparse's prefix
+    matching quietly resolves ``--passphrase hunter2`` to ``--passphrase-env``,
+    so the secret becomes an *environment variable name*, no such variable
+    exists, and the identity is written unencrypted -- while the passphrase
+    itself sits in argv where `ps` and shell history can read it. Silently
+    doing the opposite of what the user asked is the worst available outcome,
+    so the flag is declared and refused.
+    """
+
+    def __init__(self, option_strings, dest, **kwargs):
+        super().__init__(option_strings, dest, nargs="?", **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        parser.error(
+            "--passphrase is not supported: anything on the command line is "
+            "visible to other users via `ps` and is saved in shell history.\n"
+            "Set the passphrase in an environment variable instead:\n"
+            "    CHATBIT_PASSPHRASE=... chatbit ...\n"
+            "or omit it and you will be prompted."
+        )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="chatbit", description="Encrypted mesh chat over radio you control."
@@ -447,6 +535,24 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--identity", default="~/.chatbit/identity.json")
     parser.add_argument("--trust", default="~/.chatbit/trust.json")
     parser.add_argument("--nick", default="anon")
+    parser.add_argument(
+        "--passphrase-env",
+        default="CHATBIT_PASSPHRASE",
+        metavar="VAR",
+        help=(
+            "environment variable holding the identity passphrase. There is "
+            "deliberately no --passphrase flag: argv is world-readable via ps "
+            "and lands in shell history."
+        ),
+    )
+    parser.add_argument(
+        "--no-encrypt",
+        action="store_true",
+        help="create a new identity without a passphrase, without prompting",
+    )
+    # Declared solely so it can be refused with a useful message; see the
+    # action's docstring for why leaving it undeclared is unsafe.
+    parser.add_argument("--passphrase", action=_RejectPassphraseFlag, help=argparse.SUPPRESS)
 
     sub = parser.add_subparsers(dest="command", required=True)
 
