@@ -1,0 +1,188 @@
+{
+  "description": "Frame encoding, padding and fragmentation.",
+  "header": {
+    "length": 23,
+    "layout": [
+      {
+        "offset": 0,
+        "size": 1,
+        "field": "version"
+      },
+      {
+        "offset": 1,
+        "size": 1,
+        "field": "ptype"
+      },
+      {
+        "offset": 2,
+        "size": 1,
+        "field": "ttl"
+      },
+      {
+        "offset": 3,
+        "size": 1,
+        "field": "frag_index"
+      },
+      {
+        "offset": 4,
+        "size": 1,
+        "field": "frag_count"
+      },
+      {
+        "offset": 5,
+        "size": 8,
+        "field": "msg_id"
+      },
+      {
+        "offset": 13,
+        "size": 8,
+        "field": "dst_tag"
+      },
+      {
+        "offset": 21,
+        "size": 2,
+        "field": "payload_len (big-endian)"
+      },
+      {
+        "offset": 23,
+        "size": "payload_len",
+        "field": "payload"
+      }
+    ],
+    "note": "All multi-byte integers in the frame header are big-endian."
+  },
+  "packet_types": {
+    "HANDSHAKE_INIT": 1,
+    "HANDSHAKE_RESP": 2,
+    "HANDSHAKE_FIN": 3,
+    "DATA": 16,
+    "BEACON": 32,
+    "COVER": 48,
+    "ACK": 64
+  },
+  "broadcast_tag": "0000000000000000",
+  "packets": [
+    {
+      "name": "data_frame",
+      "ptype": "DATA",
+      "ttl": 7,
+      "msg_id": "0011223344556677",
+      "dst_tag": "8899aabbccddeeff",
+      "payload": "656e63727970746564207061796c6f6164206279746573",
+      "encoded": "011007000100112233445566778899aabbccddeeff0017656e63727970746564207061796c6f6164206279746573",
+      "encoded_padded_200": "011007000100112233445566778899aabbccddeeff0017656e63727970746564207061796c6f616420627974657300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "name": "broadcast_beacon",
+      "ptype": "BEACON",
+      "ttl": 3,
+      "msg_id": "0011223344556677",
+      "dst_tag": "0000000000000000",
+      "payload": "626561636f6e20626f6479",
+      "encoded": "012003000100112233445566770000000000000000000b626561636f6e20626f6479"
+    }
+  ],
+  "padding": {
+    "policies": {
+      "strict": "pad every frame to the MTU",
+      "bucket": "pad to the next value in the ladder",
+      "none": "no padding"
+    },
+    "bucket_ladder": [
+      32,
+      64,
+      96,
+      128,
+      192,
+      256,
+      384,
+      512,
+      768,
+      1024
+    ],
+    "cases": [
+      {
+        "frame_len": 23,
+        "mtu": 200,
+        "strict": 200,
+        "bucket": 32,
+        "none": 23
+      },
+      {
+        "frame_len": 30,
+        "mtu": 200,
+        "strict": 200,
+        "bucket": 32,
+        "none": 30
+      },
+      {
+        "frame_len": 33,
+        "mtu": 200,
+        "strict": 200,
+        "bucket": 64,
+        "none": 33
+      },
+      {
+        "frame_len": 64,
+        "mtu": 200,
+        "strict": 200,
+        "bucket": 64,
+        "none": 64
+      },
+      {
+        "frame_len": 100,
+        "mtu": 200,
+        "strict": 200,
+        "bucket": 128,
+        "none": 100
+      },
+      {
+        "frame_len": 190,
+        "mtu": 200,
+        "strict": 200,
+        "bucket": 192,
+        "none": 190
+      },
+      {
+        "frame_len": 198,
+        "mtu": 200,
+        "strict": 200,
+        "bucket": 200,
+        "none": 198
+      },
+      {
+        "frame_len": 200,
+        "mtu": 200,
+        "strict": 200,
+        "bucket": 200,
+        "none": 200
+      }
+    ]
+  },
+  "fragmentation": {
+    "capacity": 177,
+    "payload_len": 500,
+    "payload": "00070e151c232a31383f464d545b626970777e858c939aa1a8afb6bdc4cbd2d9e0e7eef5fc030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dce3eaf1f8ff060d141b222930373e454c535a61686f767d848b9299a0a7aeb5bcc3cad1d8dfe6edf4fb020910171e252c333a41484f565d646b727980878e959ca3aab1b8bfc6cdd4dbe2e9f0f7fe050c131a21282f363d444b525960676e757c838a91989fa6adb4bbc2c9d0d7dee5ecf3fa01080f161d242b323940474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6fd040b121920272e353c434a51585f666d747b828990979ea5acb3bac1c8cfd6dde4ebf2f900070e151c232a31383f464d545b626970777e858c939aa1a8afb6bdc4cbd2d9e0e7eef5fc030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dce3eaf1f8ff060d141b222930373e454c535a61686f767d848b9299a0a7aeb5bcc3cad1d8dfe6edf4fb020910171e252c333a41484f565d646b727980878e959ca3aab1b8bfc6cdd4dbe2e9f0f7fe050c131a21282f363d444b525960676e757c838a91989fa6adb4bbc2c9d0d7dee5ecf3fa01080f161d242b323940474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6fd040b121920272e353c434a51585f666d747b828990979ea5",
+    "fragment_count": 3,
+    "fragments": [
+      {
+        "frag_index": 0,
+        "frag_count": 3,
+        "payload_len": 177,
+        "encoded": "011007000300112233445566778899aabbccddeeff00b100070e151c232a31383f464d545b626970777e858c939aa1a8afb6bdc4cbd2d9e0e7eef5fc030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dce3eaf1f8ff060d141b222930373e454c535a61686f767d848b9299a0a7aeb5bcc3cad1d8dfe6edf4fb020910171e252c333a41484f565d646b727980878e959ca3aab1b8bfc6cdd4dbe2e9f0f7fe050c131a21282f363d444b525960676e757c838a91989fa6adb4bbc2c9d0"
+      },
+      {
+        "frag_index": 1,
+        "frag_count": 3,
+        "payload_len": 177,
+        "encoded": "011007010300112233445566778899aabbccddeeff00b1d7dee5ecf3fa01080f161d242b323940474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6fd040b121920272e353c434a51585f666d747b828990979ea5acb3bac1c8cfd6dde4ebf2f900070e151c232a31383f464d545b626970777e858c939aa1a8afb6bdc4cbd2d9e0e7eef5fc030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dce3eaf1f8ff060d141b222930373e454c535a61686f767d848b9299a0a7"
+      },
+      {
+        "frag_index": 2,
+        "frag_count": 3,
+        "payload_len": 146,
+        "encoded": "011007020300112233445566778899aabbccddeeff0092aeb5bcc3cad1d8dfe6edf4fb020910171e252c333a41484f565d646b727980878e959ca3aab1b8bfc6cdd4dbe2e9f0f7fe050c131a21282f363d444b525960676e757c838a91989fa6adb4bbc2c9d0d7dee5ecf3fa01080f161d242b323940474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6fd040b121920272e353c434a51585f666d747b828990979ea5"
+      }
+    ]
+  }
+}

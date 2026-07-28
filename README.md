@@ -215,15 +215,51 @@ Crypto suite: X25519 · Ed25519 · ChaCha20-Poly1305 · SHA-256 · HKDF. No nove
 constructions anywhere — the interesting parts are standard designs assembled from
 standard parts.
 
+## Running it on other platforms
+
+The **protocol** is portable. This **implementation** is not — it needs CPython and a
+serial-attached LoRa radio, which rules out phones on both counts. No phone has a LoRa
+radio, so a mobile build talks to an external board over BLE, the way
+[Meshtastic](https://meshtastic.org/docs/faq/) does. (Bluetooth comes back — not as the
+mesh, but as the tether.)
+
+So the portability layer is a spec plus test vectors rather than a cross-platform binary:
+
+| | |
+|---|---|
+| [`docs/PROTOCOL.md`](docs/PROTOCOL.md) | Complete language-agnostic spec. Everything needed to implement chatbit without reading the Python. |
+| [`docs/PORTING.md`](docs/PORTING.md) | How to port safely, in dependency order, and the mistakes to avoid. |
+| [`vectors/`](vectors/) | Machine-readable vectors pinning every intermediate value. |
+
+```bash
+.venv/bin/python tools/verify_vectors.py     # 166 conformance checks
+.venv/bin/python tools/generate_vectors.py   # regenerate (deterministic)
+```
+
+The vectors matter more than usual here. bitchat's bug was not a broken primitive — it
+was how identity bound to a session, which is invisible to any test that only checks
+"can Alice message Bob". Reimplementing a handshake and a ratchet by eye, in a new
+language, with no way to inspect intermediate state, is how that gets reintroduced. So
+the vectors pin `h` and `ck` after *every* handshake message, the full ratchet chain
+including DH steps and out-of-order delivery, and nonce counters at 2³² and 2³⁹ that
+catch endianness errors the usual n=0/n=1 cases sail straight past.
+
 ## Tests
 
 ```bash
-.venv/bin/python -m pytest -q      # 77 tests
+.venv/bin/python -m pytest -q      # 88 tests
 ```
 
 The ones worth reading are in [`tests/test_security.py`](tests/test_security.py): MITM
 detection, forged-signature rejection, replayed identity proofs, key-change refusal,
 forward secrecy, post-compromise healing, and bounded state under flooding.
+
+[`tests/test_vectors.py`](tests/test_vectors.py) guards against protocol drift — any
+change to a derivation, domain string or wire offset fails until the vectors are
+regenerated deliberately. Once a second implementation exists, that is a version bump
+rather than a routine diff.
+
+CI runs the suite on Linux, macOS and Windows across Python 3.10–3.13.
 
 ---
 

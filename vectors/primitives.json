@@ -1,0 +1,94 @@
+{
+  "description": "Known-answer tests for the primitive layer.",
+  "sha256": [
+    {
+      "input": "",
+      "output": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "input": "63686174626974",
+      "output": "7b649e49fdabe801db80bfcb8f067bf77e9b9fb2651d5799f26db109d1dac06b"
+    }
+  ],
+  "hmac_sha256": [
+    {
+      "key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "data": "01",
+      "output": "9b4c8120a4823a95f47cde17a244f4507244ee6e3957d1fab9fa29b44d3829b7"
+    }
+  ],
+  "hkdf_sha256": [
+    {
+      "ikm": "696e707574206b6579206d6174657269616c",
+      "salt": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "info": "636861746269742f76312073657373696f6e",
+      "length": 96,
+      "output": "a680a66a287afa6c1ee031aa4330b410d0e3b61ee6cb2e7aff06358d8f7ece631964777326d0e049dd83e2a34e780c72125d93069d0d316c482e94b2289029b8199c3836a7aa5366288b09aa5e132bfc9ec57ac8f499b39273022a1b0539b371"
+    }
+  ],
+  "noise_hkdf": {
+    "note": "Noise defines its own expand step (spec section 4.3); it is NOT HKDF-Expand with an info parameter. temp_key = HMAC(ck, ikm), out1 = HMAC(temp_key, 0x01), out2 = HMAC(temp_key, out1||0x02), out3 = HMAC(temp_key, out2||0x03).",
+    "chaining_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "input_key_material": "696e707574206b6579206d6174657269616c",
+    "two_outputs": [
+      "785dba36cff1fcf591f812fa0b2bade807af9e50d2a96caf28d3c9a285558549",
+      "8b4e05ec153f03cf906c305b981902e2af26ae2966397bb43988c4ab28f3aae1"
+    ],
+    "three_outputs": [
+      "785dba36cff1fcf591f812fa0b2bade807af9e50d2a96caf28d3c9a285558549",
+      "8b4e05ec153f03cf906c305b981902e2af26ae2966397bb43988c4ab28f3aae1",
+      "35effd0e30e44866f90854f48ee80ae324d856c3ee9ddde0e87365acf4aeeeed"
+    ]
+  },
+  "x25519": {
+    "note": "An all-zero shared secret MUST be rejected (low-order point).",
+    "alice_private": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "alice_public": "8f40c5adb68f25624ae5b214ea767a6ec94d829d3d7b5e1ad1ba6f3e2138285f",
+    "bob_private": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
+    "bob_public": "675dd574ed7789310b3d2e7681f3790b466c773b1521fecf36577958371ea52f",
+    "shared_secret": "2cca6df951833fd6298ab3777ea473000678977f16e74d866503bdde532f7a7e"
+  },
+  "ed25519": {
+    "private": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+    "public": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+    "message": "636861746269742f7631206964656e746974792d62696e64696e670000000000000000000000000000000000000000000000000000000000000000",
+    "signature": "d792bf8a4d4119b2174c7af87da3a4147b44e66b8c23a8fb6c6876e900d9a9dd60d0f50c1ddff9c022c0ecee8b910da2f08ef523a5655b4356c4571a23038f0f"
+  },
+  "chacha20poly1305_noise_nonce": {
+    "note": "Noise builds a 12-byte nonce as 4 zero bytes followed by the 64-bit counter in LITTLE-endian order.",
+    "cases": [
+      {
+        "n": 0,
+        "nonce": "000000000000000000000000",
+        "key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "ad": "6173736f6369617465642064617461",
+        "plaintext": "6368617462697420766563746f72",
+        "ciphertext": "7bd02345cf8fd2f165043f15c0315bdcd5424d5063ab0ca7e24f7e110ac2"
+      },
+      {
+        "n": 1,
+        "nonce": "000000000100000000000000",
+        "key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "ad": "6173736f6369617465642064617461",
+        "plaintext": "6368617462697420766563746f72",
+        "ciphertext": "fc3f922bd743db385fd3cd283de753fc5d61ddcbc09d9a68e4b3bd130d3c"
+      },
+      {
+        "n": 4294967296,
+        "nonce": "000000000000000001000000",
+        "key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "ad": "6173736f6369617465642064617461",
+        "plaintext": "6368617462697420766563746f72",
+        "ciphertext": "301860026bb2334df0b4c3b3aab73638040a0fc50600914794c11ce74e5a"
+      },
+      {
+        "n": 549755813888,
+        "nonce": "000000000000000080000000",
+        "key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "ad": "6173736f6369617465642064617461",
+        "plaintext": "6368617462697420766563746f72",
+        "ciphertext": "1d21e8f2fe38fa8af527f3489850b9833d8f32947cc222784e91fff0ec3a"
+      }
+    ]
+  }
+}

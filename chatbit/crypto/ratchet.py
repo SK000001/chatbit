@@ -144,24 +144,45 @@ class DoubleRatchet:
         default_factory=OrderedDict
     )
 
+    #: Ratchet key source. Defaults to a fresh random keypair, which is what
+    #: production must use. Test vectors override it so that a ratchet chain --
+    #: including its DH steps -- is reproducible across implementations.
+    #: Deliberately excluded from serialize()/deserialize(): it is a policy
+    #: knob, not session state.
+    keygen: object = field(default=generate_x25519, compare=False, repr=False)
+
     # -- construction -----------------------------------------------------
 
     @classmethod
-    def init_sender(cls, shared_key: bytes, peer_ratchet_pub: bytes) -> "DoubleRatchet":
+    def init_sender(
+        cls,
+        shared_key: bytes,
+        peer_ratchet_pub: bytes,
+        keygen: object = generate_x25519,
+    ) -> "DoubleRatchet":
         """For the side that will send first (the handshake initiator)."""
         if len(shared_key) != 32:
             raise RatchetError("shared key must be 32 bytes")
         load_x25519_public(peer_ratchet_pub)
-        dhs = generate_x25519()
+        dhs = keygen()
         rk, cks = _kdf_rk(shared_key, dh(dhs, peer_ratchet_pub))
-        return cls(dhs_priv=dhs, dhr_pub=peer_ratchet_pub, rk=rk, cks=cks)
+        return cls(
+            dhs_priv=dhs, dhr_pub=peer_ratchet_pub, rk=rk, cks=cks, keygen=keygen
+        )
 
     @classmethod
-    def init_receiver(cls, shared_key: bytes, ratchet_private: object) -> "DoubleRatchet":
+    def init_receiver(
+        cls,
+        shared_key: bytes,
+        ratchet_private: object,
+        keygen: object = generate_x25519,
+    ) -> "DoubleRatchet":
         """For the side whose ratchet public key was published in the handshake."""
         if len(shared_key) != 32:
             raise RatchetError("shared key must be 32 bytes")
-        return cls(dhs_priv=ratchet_private, dhr_pub=None, rk=shared_key)
+        return cls(
+            dhs_priv=ratchet_private, dhr_pub=None, rk=shared_key, keygen=keygen
+        )
 
     @property
     def ratchet_public(self) -> bytes:
@@ -270,7 +291,7 @@ class DoubleRatchet:
         self.nr = 0
         self.dhr_pub = header.ratchet_pub
         self.rk, self.ckr = _kdf_rk(self.rk, dh(self.dhs_priv, self.dhr_pub))
-        self.dhs_priv = generate_x25519()
+        self.dhs_priv = self.keygen()
         self.rk, self.cks = _kdf_rk(self.rk, dh(self.dhs_priv, self.dhr_pub))
 
     # -- state juggling ---------------------------------------------------
@@ -286,6 +307,7 @@ class DoubleRatchet:
             nr=self.nr,
             pn=self.pn,
             skipped=OrderedDict(self.skipped),
+            keygen=self.keygen,
         )
 
     def _adopt(self, other: "DoubleRatchet") -> None:
