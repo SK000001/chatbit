@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import random
 
 import pytest
 
@@ -199,18 +200,30 @@ async def test_relay_does_not_storm():
 
 
 async def test_delivery_survives_packet_loss():
-    medium = Medium(loss=0.25)
+    """A handshake completes over a lossy link, given retries.
+
+    The retry budget is not arbitrary. A handshake needs three frames to land
+    in one attempt -- the INIT, plus both fragments of the 228-byte Noise
+    message 2 -- so at 25% loss a single attempt succeeds only
+    0.75 * 0.75**2 = 42% of the time. Six attempts leaves a 3.7% chance of
+    failure per run, which across a 13-job CI matrix is a 39% chance of a red
+    build from nothing but bad luck. Twenty attempts puts it below 1 in 40,000.
+
+    The medium is also seeded, so the drop pattern is reproducible rather than
+    differing on every run and platform.
+    """
+    medium = Medium(loss=0.25, rng=random.Random(20260728))
     a, b = Harness("alice", medium), Harness("bob", medium)
     await a.node.start()
     await b.node.start()
     try:
-        # Retry the handshake: at 25% loss a single attempt may not land.
-        for _ in range(6):
+        for _ in range(20):
             await a.node.connect(b.identity.static_public)
             await settle(0.3)
             if a.node.sessions.session_for(b.identity.signing_public):
                 break
         assert a.node.sessions.session_for(b.identity.signing_public) is not None
+        assert medium.frames_dropped > 0, "loss was configured but nothing dropped"
     finally:
         await a.node.stop()
         await b.node.stop()

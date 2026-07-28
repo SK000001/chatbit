@@ -1,0 +1,232 @@
+{
+  "description": "Double Ratchet chain: sequential sends, a DH ratchet step on direction change, and out-of-order delivery with skipped keys.",
+  "inputs": {
+    "shared_key": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+    "responder_ratchet_private": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf",
+    "responder_ratchet_public": "dc2cca31e8e43bbd91dff7e475cca3347eb478107d5bd765aba4ae4a30c35d44",
+    "note": "Ratchet keys are drawn in this order as the DH ratchet turns. An implementation replaying this chain must substitute them in sequence wherever it would otherwise generate a fresh keypair.",
+    "initiator_ratchet_privates": [
+      "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf",
+      "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
+    ],
+    "responder_ratchet_privates": [
+      "b0b1b2b3b4b5b6b7b8b9babbbcbdbebfa0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+      "d0d1d2d3d4d5d6d7d8d9dadbdcdddedfc0c1c2c3c4c5c6c7c8c9cacbcccdcecf"
+    ]
+  },
+  "schedule": [
+    {
+      "op": "send",
+      "index": 0,
+      "note": "first chain"
+    },
+    {
+      "op": "send",
+      "index": 1,
+      "note": ""
+    },
+    {
+      "op": "send",
+      "index": 2,
+      "note": "non-empty associated data"
+    },
+    {
+      "op": "deliver",
+      "index": 0,
+      "note": "responder DH-ratchets here, deriving his receiving chain"
+    },
+    {
+      "op": "deliver",
+      "index": 1,
+      "note": ""
+    },
+    {
+      "op": "deliver",
+      "index": 2,
+      "note": ""
+    },
+    {
+      "op": "send",
+      "index": 3,
+      "note": "responder's first send"
+    },
+    {
+      "op": "deliver",
+      "index": 3,
+      "note": "initiator DH-ratchets here"
+    },
+    {
+      "op": "send",
+      "index": 4,
+      "note": "initiator's second chain"
+    },
+    {
+      "op": "deliver",
+      "index": 4,
+      "note": "responder DH-ratchets again"
+    },
+    {
+      "op": "send",
+      "index": 5,
+      "note": ""
+    },
+    {
+      "op": "send",
+      "index": 6,
+      "note": ""
+    },
+    {
+      "op": "send",
+      "index": 7,
+      "note": ""
+    },
+    {
+      "op": "deliver",
+      "index": 7,
+      "note": "arrives early; keys for 5 and 6 are stored as skipped"
+    },
+    {
+      "op": "deliver",
+      "index": 5,
+      "note": "skipped key recovered"
+    },
+    {
+      "op": "deliver",
+      "index": 6,
+      "note": "skipped key recovered"
+    }
+  ],
+  "schedule_note": "Replay these operations in order. 'send' encrypts messages[index] from that party; 'deliver' decrypts a previously sent message. The interleaving is load-bearing -- a party has no sending chain until it has received at least one message, and the out-of-order deliveries at the end exercise the skipped-key path.",
+  "kdf": {
+    "kdf_rk": {
+      "note": "HKDF(ikm=dh_output, salt=root_key, info='chatbit/v1 ratchet-root', len=64) -> new_root||chain_key",
+      "root_key": "2222222222222222222222222222222222222222222222222222222222222222",
+      "dh_output": "3333333333333333333333333333333333333333333333333333333333333333",
+      "new_root_key": "8b34dc6aaf78f649dde6d072011c460e687ab8dde714121f60ab1db46f0c0ce4",
+      "new_chain_key": "0466e6bc54a055a08e306aebb5ac7286b29e20dbd9dd0d31e44e90cc0f6c34d1"
+    },
+    "kdf_ck": {
+      "note": "message_key = HMAC(ck, 0x01); next_ck = HMAC(ck, 0x02)",
+      "chain_key": "1111111111111111111111111111111111111111111111111111111111111111",
+      "message_key": "c4ede064b5f2a51225b2175e5b84fb73f9cec689ac3d912ac4878f7ebeab0149",
+      "next_chain_key": "ed50b271f4852277c8218e209858d8bd32a3228a9e4fb6b5a16fb9b4755c53bc"
+    },
+    "message_keys": {
+      "note": "HKDF(ikm=message_key, salt=32 zero bytes, info='chatbit/v1 message-key', len=44) -> aead_key(32)||nonce(12)",
+      "message_key": "c4ede064b5f2a51225b2175e5b84fb73f9cec689ac3d912ac4878f7ebeab0149",
+      "aead_key": "36bb8340aa547b8ce6fbc8ddf377fa78fdd84cd44fc2c5246acf1bb1dd123b7b",
+      "aead_nonce": "af39b0e8791487ea64a5a074"
+    }
+  },
+  "header_format": {
+    "layout": "ratchet_public(32) || pn(4, big-endian) || n(4, big-endian)",
+    "length": 40
+  },
+  "aead_associated_data": "associated_data || header.encode() -- the header is authenticated even though it travels in the clear",
+  "messages": [
+    {
+      "index": 0,
+      "from": "initiator",
+      "plaintext": "6669727374206d657373616765",
+      "associated_data": "",
+      "header": {
+        "ratchet_public": "605a725d2a4adfeeb1a29e17edd621c1b7593ee8cdbc44ac6c4ab6e2f805d23c",
+        "pn": 0,
+        "n": 0,
+        "encoded": "605a725d2a4adfeeb1a29e17edd621c1b7593ee8cdbc44ac6c4ab6e2f805d23c0000000000000000"
+      },
+      "ciphertext": "d8ff08f86aa6b444b6d09e23e36305197fd3f9f40051a97702efdf96d6"
+    },
+    {
+      "index": 1,
+      "from": "initiator",
+      "plaintext": "7365636f6e64206d657373616765",
+      "associated_data": "",
+      "header": {
+        "ratchet_public": "605a725d2a4adfeeb1a29e17edd621c1b7593ee8cdbc44ac6c4ab6e2f805d23c",
+        "pn": 0,
+        "n": 1,
+        "encoded": "605a725d2a4adfeeb1a29e17edd621c1b7593ee8cdbc44ac6c4ab6e2f805d23c0000000000000001"
+      },
+      "ciphertext": "d73ec73805075bb7b968c9dd3a029ab9089ac394608101ed864cf3905d95"
+    },
+    {
+      "index": 2,
+      "from": "initiator",
+      "plaintext": "7468697264206d657373616765",
+      "associated_data": "636861746269742d6164",
+      "header": {
+        "ratchet_public": "605a725d2a4adfeeb1a29e17edd621c1b7593ee8cdbc44ac6c4ab6e2f805d23c",
+        "pn": 0,
+        "n": 2,
+        "encoded": "605a725d2a4adfeeb1a29e17edd621c1b7593ee8cdbc44ac6c4ab6e2f805d23c0000000000000002"
+      },
+      "ciphertext": "29f824114042f0590f6e106c4c55984afcf93edbace3ab273ea821d008"
+    },
+    {
+      "index": 3,
+      "from": "responder",
+      "plaintext": "7265706c792066726f6d20726573706f6e646572",
+      "associated_data": "",
+      "header": {
+        "ratchet_public": "1de5cd3c0abc51271e14c841a4ed07f1de5e85fa69c4a5dc193bb5eea808875d",
+        "pn": 0,
+        "n": 0,
+        "encoded": "1de5cd3c0abc51271e14c841a4ed07f1de5e85fa69c4a5dc193bb5eea808875d0000000000000000"
+      },
+      "ciphertext": "fb6a863af78cac6178ac19a91eb7e275956b4ba7478ec2d5b40ec93c128de5d17a52daad"
+    },
+    {
+      "index": 4,
+      "from": "initiator",
+      "plaintext": "61667465722074686520726174636865742073746570",
+      "associated_data": "",
+      "header": {
+        "ratchet_public": "dc2cca31e8e43bbd91dff7e475cca3347eb478107d5bd765aba4ae4a30c35d44",
+        "pn": 3,
+        "n": 0,
+        "encoded": "dc2cca31e8e43bbd91dff7e475cca3347eb478107d5bd765aba4ae4a30c35d440000000300000000"
+      },
+      "ciphertext": "ffae6288f00d15bdb749ea15ccdd43b3f092195f7e36e8eac7370274e9b533a3873ada804a80"
+    },
+    {
+      "index": 5,
+      "from": "initiator",
+      "plaintext": "6f6f6f2d61",
+      "associated_data": "",
+      "header": {
+        "ratchet_public": "dc2cca31e8e43bbd91dff7e475cca3347eb478107d5bd765aba4ae4a30c35d44",
+        "pn": 3,
+        "n": 1,
+        "encoded": "dc2cca31e8e43bbd91dff7e475cca3347eb478107d5bd765aba4ae4a30c35d440000000300000001"
+      },
+      "ciphertext": "4058d75ee060d8a111e2b8ed3c72eaa3cf189a9268"
+    },
+    {
+      "index": 6,
+      "from": "initiator",
+      "plaintext": "6f6f6f2d62",
+      "associated_data": "",
+      "header": {
+        "ratchet_public": "dc2cca31e8e43bbd91dff7e475cca3347eb478107d5bd765aba4ae4a30c35d44",
+        "pn": 3,
+        "n": 2,
+        "encoded": "dc2cca31e8e43bbd91dff7e475cca3347eb478107d5bd765aba4ae4a30c35d440000000300000002"
+      },
+      "ciphertext": "36581e7a3e00c9daadc6aca28f239fd4ba094e5039"
+    },
+    {
+      "index": 7,
+      "from": "initiator",
+      "plaintext": "6f6f6f2d63",
+      "associated_data": "",
+      "header": {
+        "ratchet_public": "dc2cca31e8e43bbd91dff7e475cca3347eb478107d5bd765aba4ae4a30c35d44",
+        "pn": 3,
+        "n": 3,
+        "encoded": "dc2cca31e8e43bbd91dff7e475cca3347eb478107d5bd765aba4ae4a30c35d440000000300000003"
+      },
+      "ciphertext": "e436998f212c3be56c088e689196f20d0eabf2f411"
+    }
+  ]
+}

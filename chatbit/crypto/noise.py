@@ -155,6 +155,11 @@ class HandshakeState:
     static_private: object  # X25519PrivateKey
     prologue: bytes = b""
 
+    #: Ephemeral key source. Defaults to a fresh random keypair, which is what
+    #: production must use. Test vectors override it to pin the ephemeral and
+    #: make a handshake transcript reproducible across implementations.
+    ephemeral_factory: object = generate_x25519
+
     symmetric: SymmetricState = field(init=False)
     e: object | None = field(default=None, init=False)
     re: bytes | None = field(default=None, init=False)
@@ -187,7 +192,7 @@ class HandshakeState:
     def write_message_1(self) -> bytes:
         if not self.initiator or self._msg_index != 0:
             raise NoiseError("write_message_1 out of order")
-        self.e = generate_x25519()
+        self.e = self.ephemeral_factory()
         epub = x25519_public_bytes(self.e)
         self.symmetric.mix_hash(epub)
         self._msg_index = 1
@@ -213,7 +218,7 @@ class HandshakeState:
         """
         if self.initiator or self._msg_index != 1:
             raise NoiseError("write_message_2 out of order")
-        self.e = generate_x25519()
+        self.e = self.ephemeral_factory()
         epub = x25519_public_bytes(self.e)
         self.symmetric.mix_hash(epub)
 

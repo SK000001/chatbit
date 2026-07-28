@@ -1,0 +1,76 @@
+{
+  "description": "A full Noise_XX_25519_ChaChaPoly_SHA256 handshake with chatbit's identity-binding payloads. All intermediate h and ck values are included so a port can localise a divergence.",
+  "inputs": {
+    "prologue": "636861746269742f7631",
+    "initiator": {
+      "nickname": "alice",
+      "static_private": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "static_public": "8f40c5adb68f25624ae5b214ea767a6ec94d829d3d7b5e1ad1ba6f3e2138285f",
+      "signing_private": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "signing_public": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+      "ephemeral_private": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f"
+    },
+    "responder": {
+      "nickname": "bob",
+      "static_private": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
+      "static_public": "675dd574ed7789310b3d2e7681f3790b466c773b1521fecf36577958371ea52f",
+      "signing_private": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
+      "signing_public": "cd14b37f956e953194ff7fb73b3d81dcc561d61a7538094b7c3e1a643ee5f3aa",
+      "ephemeral_private": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf",
+      "ratchet_private": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf",
+      "ratchet_public": "dc2cca31e8e43bbd91dff7e475cca3347eb478107d5bd765aba4ae4a30c35d44"
+    }
+  },
+  "identity_signature": {
+    "domain": "chatbit/v1 identity-binding",
+    "note": "Signed message is DOMAIN || h, where h is the transcript hash BEFORE the payload is encrypted. This binds the identity to this specific handshake and is what makes replay across sessions fail."
+  },
+  "transcript": [
+    {
+      "step": "initialize",
+      "protocol_name": "Noise_XX_25519_ChaChaPoly_SHA256",
+      "prologue": "636861746269742f7631",
+      "h_after_prologue": "40c8ca0fa109ff95de341f745e786a4cc5b940f6f130ab041f4425725759258a",
+      "ck_after_prologue": "4e6f6973655f58585f32353531395f436861436861506f6c795f534841323536"
+    },
+    {
+      "step": "message_1",
+      "pattern": "-> e",
+      "message": "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51a",
+      "h": "b64aafa804e93bb76785f0c9a5a98a1d269cce06c7d2cb611b462a6854f6d184",
+      "ck": "4e6f6973655f58585f32353531395f436861436861506f6c795f534841323536"
+    },
+    {
+      "step": "message_2",
+      "pattern": "<- e, ee, s, es",
+      "message": "605a725d2a4adfeeb1a29e17edd621c1b7593ee8cdbc44ac6c4ab6e2f805d23c8a1bfd902928994b383072a7f782dd0cb5e059af749ada4f7e4c2fb255d6d41cad2eaee1ea9083f95c352ccfe1a0813cda64f848b2f7cb528d772ac79fb01247813373008c28ea852c7483361dbcb273265f3df2919edf3bd3ec97630a3e14b6a97e6e73ace7021b58b8a56535b38cb72fcf85fcd73ade177ba74eba16e937d76cdfe7a2bf98cb7f030b17dab457beb613d14f1b15ce308becaa0857a31413d9f8df40c4ff02c321fb69e15f5cf23d8e6be98a1531ccbb4d1ef211edbdb024157d27f3a0",
+      "signed_handshake_hash": "95903bad72b1018d3a49cfde482c59d0e9924a4284b5c9567597040a7bfb274f",
+      "decrypted_payload": "cd14b37f956e953194ff7fb73b3d81dcc561d61a7538094b7c3e1a643ee5f3aacf7e6b861ed9730e73a37d9b386c59d733db700b5e22c4b22753723af736bae6767d681f30e74e25a8954e8dfa5166b36dc826deb3679931ddd7e9483699cc06dc2cca31e8e43bbd91dff7e475cca3347eb478107d5bd765aba4ae4a30c35d4403626f62",
+      "payload_layout": "ed25519_pub(32) || sig(64) || ratchet_pub(32) || nick_len(1) || nick",
+      "remote_static_learned": "675dd574ed7789310b3d2e7681f3790b466c773b1521fecf36577958371ea52f",
+      "h": "4dde03a683aeb9bb0c229227b0e776c561021ebac2a7bfe67dc9794dbc587d31",
+      "ck": "53993381101d51efedb77f4c6e520b46b626b7ab9209c8992793ea8b6a901ebd"
+    },
+    {
+      "step": "message_3",
+      "pattern": "-> s, se",
+      "message": "715bdd0785abd03ba2c3562c98d97f17853f0d61c5d01f68c190343524b9e3b42edffd8ccf85de3b2010a3717072746198e1d690abb7509c47fad3541964cd4d3d264556ddd275e040d729b0bda75eb8593ae6b101ec393db8b5a2d2e3c0aae78d023da3a7baec5ccb37d09104cf0cdf9807eee85ac0fa19aab04d7ac877acd7015762efb27e53bdb4dbf34e21bb0c08edd070e2ce2d59e338bec830432b43379a8a07c31860",
+      "signed_handshake_hash": "2ade952aa1cdabce572a29931634d3453d7b4c1c2d3b0c43ce23ba90b0952390",
+      "decrypted_payload": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7e0e0263c3df31957d94e87038f39df827f6c23d756b1054c2212de0f00a683bac30c3cd344878db84186a61850bf23646ae49f8421aa32be7c3cbd2a0aff7e0305616c696365",
+      "payload_layout": "ed25519_pub(32) || sig(64) || nick_len(1) || nick",
+      "remote_static_learned": "8f40c5adb68f25624ae5b214ea767a6ec94d829d3d7b5e1ad1ba6f3e2138285f",
+      "h": "cdb3a413f335173e59567eb78e4b106d9dd3cbe3e66eef7ed94c0bacfc4e3980",
+      "ck": "d1e6ed319e6582ffaad8921357d46af8398da827918b70fdea367ae834522b46"
+    }
+  ],
+  "outputs": {
+    "handshake_hash": "cdb3a413f335173e59567eb78e4b106d9dd3cbe3e66eef7ed94c0bacfc4e3980",
+    "chaining_key": "d1e6ed319e6582ffaad8921357d46af8398da827918b70fdea367ae834522b46",
+    "split_initiator_send_key": "8eaae9b362422a8b71e48426ffdd4143d76746c8441bbd2c8a70567ec789f5b7",
+    "split_initiator_recv_key": "73617047d065da4b560291f641df466bcab00f75c301afcd322b91bd2190a732",
+    "session_root_key": "8112a0494337882e8e8ae9b0625abbd8b8ac3bc1c18c4375666b5c6bdb788d4d",
+    "session_i2r_tag_key": "45f5f0b3718e7fb16ce266a374359633467a083b1a109a5caeb5363b82930a36",
+    "session_r2i_tag_key": "c318c42550c61319685c44fb9d19fb7e62c1c417dceb29d1354cb3cd2011d3e2",
+    "session_kdf": "HKDF(ikm=chaining_key, salt=handshake_hash, info='chatbit/v1 session', len=96) -> root||i2r_tag||r2i_tag"
+  }
+}

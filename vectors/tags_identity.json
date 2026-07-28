@@ -1,0 +1,72 @@
+{
+  "description": "Rotating recipient tags, fingerprints and safety numbers.",
+  "tags": {
+    "epoch_seconds": 600,
+    "epoch_skew_accepted": 1,
+    "session_tag": {
+      "formula": "HMAC-SHA256(tag_key, 'chatbit/v1 tag' || epoch_be64)[:8]",
+      "tag_key": "7777777777777777777777777777777777777777777777777777777777777777",
+      "cases": [
+        {
+          "epoch": 0,
+          "tag": "71bb4d6f7f10fded"
+        },
+        {
+          "epoch": 1,
+          "tag": "2e5c9ff849709707"
+        },
+        {
+          "epoch": 1000,
+          "tag": "9ade1fee4a520fd2"
+        },
+        {
+          "epoch": 2000000,
+          "tag": "b84fd7189c94f138"
+        }
+      ]
+    },
+    "handshake_tag": {
+      "formula": "HMAC-SHA256(responder_static_pub, 'chatbit/v1 handshake-tag' || epoch_be64)[:8]",
+      "responder_static_public": "675dd574ed7789310b3d2e7681f3790b466c773b1521fecf36577958371ea52f",
+      "cases": [
+        {
+          "epoch": 0,
+          "tag": "0aadf9777399b6ae"
+        },
+        {
+          "epoch": 1,
+          "tag": "42f3bd8ca887c343"
+        },
+        {
+          "epoch": 1000,
+          "tag": "fb1ca41da3f97f5c"
+        },
+        {
+          "epoch": 2000000,
+          "tag": "13c474662b9633c2"
+        }
+      ]
+    }
+  },
+  "identity": {
+    "fingerprint_formula": "SHA256('chatbit/v1 fingerprint' || ed25519_pub || x25519_pub)",
+    "alice": {
+      "signing_public": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+      "static_public": "8f40c5adb68f25624ae5b214ea767a6ec94d829d3d7b5e1ad1ba6f3e2138285f",
+      "fingerprint": "f48e982e37ef1859d9b253265b548b6eb57dc30473c2c76fbee3178bd7b7df09",
+      "short_id": "f48e982e"
+    },
+    "bob": {
+      "signing_public": "cd14b37f956e953194ff7fb73b3d81dcc561d61a7538094b7c3e1a643ee5f3aa",
+      "static_public": "675dd574ed7789310b3d2e7681f3790b466c773b1521fecf36577958371ea52f",
+      "fingerprint": "a4d5a5d6ba0c1acbb15d842474590eb0c6d38575a919107e4a5ae8040b17ef1f",
+      "short_id": "a4d5a5d6"
+    },
+    "safety_number": {
+      "formula": "sort the two fingerprints, then HKDF(ikm=lo||hi, salt='', info='chatbit/v1 safety-number', len=30); each byte -> last two digits of its 3-digit decimal form; take 60 digits, group in fives",
+      "note": "Order-independent: both parties compute the same string.",
+      "value": "61684 30169 37569 49336 48413 19076 79007 55206 74043 64625 65134 78105",
+      "value_reversed_args": "61684 30169 37569 49336 48413 19076 79007 55206 74043 64625 65134 78105"
+    }
+  }
+}
