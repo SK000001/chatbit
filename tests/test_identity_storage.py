@@ -9,6 +9,7 @@ again.
 from __future__ import annotations
 
 import json
+import os
 
 import pytest
 
@@ -87,13 +88,41 @@ def test_is_encrypted_tolerates_junk(tmp_path):
     assert Identity.is_encrypted(junk) is False
 
 
-def test_unencrypted_file_is_owner_only(tmp_path):
+@pytest.mark.skipif(
+    os.name == "nt", reason="Windows has no POSIX permission bits; see the test below"
+)
+def test_unencrypted_file_is_owner_only_on_posix(tmp_path):
     import stat
 
     path = tmp_path / "id.json"
     Identity.generate("alice").save(path)
     mode = stat.S_IMODE(path.stat().st_mode)
     assert mode == 0o600, f"identity file mode is {mode:o}, expected 600"
+
+
+@pytest.mark.skipif(os.name != "nt", reason="documents Windows-specific behaviour")
+def test_windows_cannot_restrict_the_file_mode(tmp_path):
+    """Documents a real gap rather than skipping quietly past it.
+
+    ``os.chmod`` on Windows can only toggle the read-only flag -- POSIX
+    permission bits do not exist there, so the 0600 we request is a no-op and
+    the file ends up 0666. An unencrypted identity on Windows is therefore
+    protected only by whatever NTFS ACLs it inherits from its directory, which
+    is a much weaker guarantee than the one this project makes on POSIX.
+
+    Closing it properly means manipulating ACLs through pywin32 or icacls.
+    Until then the honest mitigation is a passphrase, and the CLI says so when
+    it writes an unencrypted identity on Windows.
+    """
+    import stat
+
+    path = tmp_path / "id.json"
+    Identity.generate("alice").save(path)
+    mode = stat.S_IMODE(path.stat().st_mode)
+    assert mode != 0o600, (
+        "Windows now honours POSIX permission bits -- if this ever passes, the "
+        "warning in Identity.save and SECURITY.md should be revisited"
+    )
 
 
 # ---------------------------------------------------------------------------

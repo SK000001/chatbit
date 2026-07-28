@@ -141,9 +141,15 @@ class Identity:
     def save(self, path: str | Path, passphrase: str | None = None) -> None:
         """Write the identity to disk, encrypted if a passphrase is given.
 
-        The file is created 0600. An unencrypted identity file is a private key
-        lying on disk in the clear, so callers are expected to pass a
-        passphrase for anything but throwaway test keys.
+        An unencrypted identity file is a private key lying on disk in the
+        clear, so callers are expected to pass a passphrase for anything but
+        throwaway test keys.
+
+        The file is created 0600 **on POSIX**. On Windows ``os.chmod`` can only
+        toggle the read-only flag -- there are no POSIX permission bits -- so
+        the request is a no-op and the file ends up world-readable, protected
+        only by whatever NTFS ACLs it inherits. On Windows a passphrase is the
+        only real protection for this file.
         """
         path = Path(path)
         body = json.dumps(

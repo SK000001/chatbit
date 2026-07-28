@@ -148,6 +148,14 @@ The passphrase is never accepted as a command-line argument, because argv is rea
 any local user through `ps` and is written to shell history. Use `CHATBIT_PASSPHRASE`, or
 let the tool prompt.
 
+**On Windows the file permissions are weaker than on POSIX.** The identity file is
+written `0600` on Linux and macOS, but Windows has no POSIX permission bits and
+`os.chmod` there only toggles the read-only flag — so the request is a no-op and the file
+is left readable by other accounts, protected only by inherited NTFS ACLs. Closing that
+properly needs ACL manipulation via pywin32 or `icacls`, which is not implemented. Until
+it is, a passphrase is the only real protection for an identity file on Windows, and the
+CLI says so when it writes an unencrypted one there.
+
 ### Traffic confirmation by a global observer
 
 Someone monitoring the whole radio environment can correlate transmission timing across

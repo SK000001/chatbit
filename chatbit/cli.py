@@ -43,6 +43,23 @@ BANNER = r"""
 # ---------------------------------------------------------------------------
 
 
+def _warn_if_permissions_are_unenforceable() -> None:
+    """Say so when the filesystem cannot restrict the identity file.
+
+    On POSIX the identity file is written 0600. On Windows ``os.chmod`` only
+    toggles the read-only flag, so that request does nothing and the file is
+    readable by other accounts on the machine. Somebody choosing to skip
+    encryption deserves to know the filesystem is not going to cover for them.
+    """
+    if os.name == "nt":
+        print(
+            "!! on Windows the file cannot be restricted to your account "
+            "(no POSIX permission bits), so a passphrase is the only real "
+            "protection for it",
+            file=sys.stderr,
+        )
+
+
 def resolve_passphrase(path: Path, args) -> str | None:
     """Work out the passphrase for an identity file, prompting if needed.
 
@@ -74,6 +91,7 @@ def resolve_passphrase(path: Path, args) -> str | None:
     # so take it rather than silently writing a private key in the clear.
     if getattr(args, "no_encrypt", False):
         print(f"!! creating an UNENCRYPTED identity at {path}", file=sys.stderr)
+        _warn_if_permissions_are_unenforceable()
         return None
 
     if not sys.stdin.isatty():
@@ -82,6 +100,7 @@ def resolve_passphrase(path: Path, args) -> str | None:
             f"prompt on; set {env_var} to encrypt it)",
             file=sys.stderr,
         )
+        _warn_if_permissions_are_unenforceable()
         return None
 
     print(f"Creating a new identity at {path}.")
@@ -89,6 +108,7 @@ def resolve_passphrase(path: Path, args) -> str | None:
     first = getpass.getpass("passphrase (empty to skip): ")
     if not first:
         print("!! identity will be stored UNENCRYPTED", file=sys.stderr)
+        _warn_if_permissions_are_unenforceable()
         return None
     second = getpass.getpass("confirm: ")
     if first != second:
