@@ -141,9 +141,15 @@ class Identity:
     def save(self, path: str | Path, passphrase: str | None = None) -> None:
         """Write the identity to disk, encrypted if a passphrase is given.
 
-        The file is created 0600. An unencrypted identity file is a private key
-        lying on disk in the clear, so callers are expected to pass a
-        passphrase for anything but throwaway test keys.
+        An unencrypted identity file is a private key lying on disk in the
+        clear, so callers are expected to pass a passphrase for anything but
+        throwaway test keys.
+
+        The file is created 0600 **on POSIX**. On Windows ``os.chmod`` can only
+        toggle the read-only flag -- there are no POSIX permission bits -- so
+        the request is a no-op and the file ends up world-readable, protected
+        only by whatever NTFS ACLs it inherits. On Windows a passphrase is the
+        only real protection for this file.
         """
         path = Path(path)
         body = json.dumps(
@@ -174,6 +180,19 @@ class Identity:
             json.dump(blob, fh)
         os.chmod(tmp, stat.S_IRUSR | stat.S_IWUSR)
         os.replace(tmp, path)
+
+    @staticmethod
+    def is_encrypted(path: str | Path) -> bool:
+        """Whether an identity file is passphrase-protected.
+
+        Lets a caller decide to prompt *before* attempting a load, rather than
+        loading, failing, and prompting on the way back up.
+        """
+        try:
+            with open(path) as fh:
+                return json.load(fh).get("enc", "none") != "none"
+        except (OSError, json.JSONDecodeError, AttributeError):
+            return False
 
     @classmethod
     def load(cls, path: str | Path, passphrase: str | None = None) -> "Identity":
